@@ -37,7 +37,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
         X_train = X[idx, :]
         y_train = y_train[idx]
 
-    else:
+    if maxSize > X.shape[0]:
         raise ValueError('MaxSize is larger that dataset size!')
 
     ex = exemplar
