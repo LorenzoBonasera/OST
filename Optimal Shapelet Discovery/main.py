@@ -15,14 +15,14 @@ if __name__ == '__main__':
     X_train, y_train = load_UCR_UEA_dataset(name=dataset, split='Train', return_X_y=True)
     X_train, y_train, y_set, scaler = preprocessTrain(X_train, y_train)
 
-    ex = 113
-    maxSize = 131
+    ex = None                   # change if you want to fix the exemplar
+    maxSize = None              # change if dataset is too large!
     J = X_train.shape[1]
     K = len(y_set)
-    epsilon = 0.0001
+    epsilon = 0.0001            # raise this if facing numerical errors
     alpha = 1
-    depth = 1
-    H = 8
+    depth = 1                   
+    H = 8                       # this has to be tuned
 
     ### Training phase
 
