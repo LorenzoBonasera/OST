@@ -1,4 +1,4 @@
-# OST
+# Optimal time series Shapelets Tree
 
 Datasets are avaiable at the following link: https://www.timeseriesclassification.com/dataset.php
 
