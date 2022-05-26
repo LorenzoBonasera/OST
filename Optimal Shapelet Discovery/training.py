@@ -15,7 +15,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
 
     # check depth
     if K > 2**depth:
-        raise ValueError('Depth is too low to handle such different classes!')
+        raise ValueError('Depth is too low to handle so many different classes!')
 
     # Compute big-M
     M3 = 1
