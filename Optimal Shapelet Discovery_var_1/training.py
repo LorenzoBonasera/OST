@@ -15,7 +15,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, maxSize=None):
     
     # check depth
     if K > 2**depth:
-        raise ValueError('Depth is too low to handle such different classes!')
+        raise ValueError('Depth is too low to handle so many different classes!')
 
     # Compute big-M
     M3 = 1
@@ -30,7 +30,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, maxSize=None):
     y_train = y
     
     if maxSize > X.shape[0]:
-        raise ValueError('MaxSize is larger that dataset size!')
+        raise ValueError('MaxSize is larger than dataset size!')
 
     if maxSize < X.shape[0]:
         idx = np.random.randint(0, X.shape[0], size=maxSize)
