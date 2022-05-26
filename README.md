@@ -4,4 +4,4 @@ Datasets are avaiable at the following link: https://www.timeseriesclassificatio
 
 In order to load a specific dataset, change the variable 'dataset' in main.py.
 
-Please remember to only test datasets with a maximum of 4 different classes, and to adjust 'depth' variable as consequence.
+Please remember to adjust 'depth' variable depending on the number of classes in the dataset!
