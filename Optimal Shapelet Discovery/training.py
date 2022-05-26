@@ -14,10 +14,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
     K = len(set(y))
 
     # check depth
-    if K > 4:
-        raise ValueError('Too many classes! Maximum number of different classes: 4')
-
-    if K > 2 and depth == 1:
+    if K > 2**depth:
         raise ValueError('Depth is too low to handle such different classes!')
 
     # Compute big-M
@@ -51,18 +48,8 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
     n = X_train.shape[0]
 
     # Tree structure
-    if depth == 2:
-        total_nodes = 7
-        branch_nodes = 3
-        leaf_nodes = 4
-        left_nodes = [1, 3, 5]
-        right_nodes = [2, 4, 6]
-    elif depth == 1:
-        total_nodes = 3
-        branch_nodes = 1
-        leaf_nodes = 2
-        left_nodes = [1]
-        right_nodes = [2]
+    leaf_nodes = 2**depth
+    branch_nodes = 2**depth - 1
 
     # Y matrix
     Y = np.zeros([n, K], dtype=int) - 1
