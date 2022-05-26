@@ -28,14 +28,14 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
 
     X_train = X
     y_train = y
+    
+    if maxSize > X.shape[0]:
+        raise ValueError('MaxSize is larger than dataset size!')
 
     if maxSize < X.shape[0]:
         idx = np.random.randint(0, X.shape[0], size=maxSize)
         X_train = X[idx, :]
         y_train = y_train[idx]
-
-    if maxSize > X.shape[0]:
-        raise ValueError('MaxSize is larger that dataset size!')
 
     ex = exemplar
     if ex is None:
