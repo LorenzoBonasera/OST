@@ -55,8 +55,6 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
     Y = np.zeros([n, K], dtype=int) - 1
     Y[range(n), y_train] = 1
 
-    # print(Y)
-
     # Model
     m = Model('mip1')
 
