@@ -3,8 +3,16 @@
 import numpy as np
 from tslearn.preprocessing import TimeSeriesScalerMinMax
 import sktime.datatypes._panel._convert as conv
+from sklearn.model_selection import train_test_split
 
-def preprocessTrain(X, y):
+
+def preprocessTrain(X, y, maxSize=None):
+    if maxSize is None:
+        maxSize = X.shape[0]
+
+    elif maxSize > X.shape[0]:
+        raise ValueError('MaxSize is larger that dataset size!')
+
     y = np.asarray(list(map(int, y)))
     y_set = set(y)
 
@@ -21,6 +29,10 @@ def preprocessTrain(X, y):
     scaler = TimeSeriesScalerMinMax()
     X = scaler.fit_transform(X)
     X = X[:, :, 0]
+    #X = np.round(X, 3)
+
+    if maxSize < X.shape[0]:
+        X, _, y, _ = train_test_split(X, y, test_size=X.shape[0]-maxSize, stratify=y)
 
     return X, y, y_set, scaler
 
@@ -40,6 +52,7 @@ def preprocessTest(X, y, y_set, scaler):
     # scale data
     X = scaler.fit_transform(X)
     X = X[:, :, 0]
+    #X = np.round(X, 3)
 
     return X, y
 
