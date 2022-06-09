@@ -4,18 +4,19 @@ from gurobipy import *
 import numpy as np
 
 
-def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
+def generateModel(X_train, y_train, alpha, depth, H, epsilon, exemplar=None):
 
     # Parameters
-    if maxSize is None:
-        maxSize = X.shape[0]
-    Nmin = round(0.05 * maxSize)
-    J = X.shape[1]
-    K = len(set(y))
+    Nmin = round(0.05 * X_train.shape[0])
+    J = X_train.shape[1]
+    K = len(set(y_train))
 
     # check depth
     if K > 2**depth:
         raise ValueError('Depth is too low to handle so many different classes!')
+
+    if depth > 3:
+        raise ValueError('Depth is too high!')
 
     # Compute big-M
     M3 = 1
@@ -23,28 +24,16 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
     M2 = H * M3
     M4 = 2 * M3 + epsilon
 
-    print("M3:", M3)
     print("M2/M1:", M1)
-
-    X_train = X
-    y_train = y
-    
-    if maxSize > X.shape[0]:
-        raise ValueError('MaxSize is larger than dataset size!')
-
-    if maxSize < X.shape[0]:
-        idx = np.random.randint(0, X.shape[0], size=maxSize)
-        X_train = X[idx, :]
-        y_train = y_train[idx]
 
     ex = exemplar
     if ex is None:
-        ex = np.random.randint(0, maxSize)
+        ex = np.random.randint(0, X_train.shape[0])
         print(ex)
 
-    X_exemplar = X[ex, :]
-    X_train = np.delete(X_train, ex, axis=0)
-    y_train = np.delete(y_train, ex)
+    X_exemplar = X_train[ex, :]
+    #X_train = np.delete(X_train, ex, axis=0)
+    #y_train = np.delete(y_train, ex)
     n = X_train.shape[0]
 
     # Tree structure
@@ -56,7 +45,7 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
     Y[range(n), y_train] = 1
 
     # Model
-    m = Model('mip1')
+    m = Model('Optimal Shapelets Tree')
 
     # Variables
     l = m.addVars(leaf_nodes, vtype=GRB.BINARY, name="l")
@@ -187,7 +176,6 @@ def generateModel(X, y, alpha, depth, H, epsilon, exemplar=None, maxSize=None):
                 else:
                     continue
 
-    #m.addConstr(L.sum() <= 3)
     return m, branch_nodes, leaf_nodes, n, X_exemplar
 
 
