@@ -32,8 +32,8 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, exemplar=None):
         print(ex)
 
     X_exemplar = X_train[ex, :]
-    #X_train = np.delete(X_train, ex, axis=0)
-    #y_train = np.delete(y_train, ex)
+    X_train = np.delete(X_train, ex, axis=0)
+    y_train = np.delete(y_train, ex)
     n = X_train.shape[0]
 
     # Tree structure
