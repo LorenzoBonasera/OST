@@ -5,14 +5,14 @@ import sktime.datatypes._panel._convert as conv
 import matplotlib.pyplot as plt
 
 
-def predictModel(A, A_hat, b, labels, X_test, y_test, exemplar):
+def predictModel(A, A_hat, b, d, labels, X_test, y_test, exemplar):
     t_rows, t_cols = X_test.shape
     tmp = np.zeros([t_rows, 1], dtype=int)
     Y_predict = np.hstack((np.reshape(y_test, (t_rows, 1)), tmp))
-    num_labels = len(set(labels))
+    num_splits = len(d)
 
     # split
-    if 5 <= num_labels <= 8:
+    if num_splits == 7:
         for i in range(t_rows):
             if np.linalg.norm(np.dot(A_hat[0], exemplar) - np.dot(A[0], X_test[i, :]), ord=1) < b[0]:
                 if np.linalg.norm(np.dot(A_hat[1], exemplar) - np.dot(A[1], X_test[i, :]), ord=1) < b[1]:
@@ -41,7 +41,7 @@ def predictModel(A, A_hat, b, labels, X_test, y_test, exemplar):
             else:
                 Y_predict[i, 1] = labels[7]
 
-    elif 3 <= num_labels <= 4:
+    elif num_splits == 3:
         for i in range(t_rows):
             if np.linalg.norm(np.dot(A_hat[0], exemplar) - np.dot(A[0], X_test[i, :]), ord=1) < b[0]:
                 if np.linalg.norm(np.dot(A_hat[1], exemplar) - np.dot(A[1], X_test[i, :]), ord=1) < b[1]:
