@@ -43,7 +43,7 @@ if __name__ == '__main__':
     ### Test phase
     X_test, y_test = load_UCR_UEA_dataset(name=dataset, split='Test', return_X_y=True)
     X_test, y_test = preprocessTest(X_test, y_test, y_set, scaler)
-    score = predictModel(A, A_hat, b, labels, X_test, y_test, exemplar)
+    score = predictModel(A, A_hat, b, d, labels, X_test, y_test, exemplar)
 
     print("Accuracy:", score)
 
