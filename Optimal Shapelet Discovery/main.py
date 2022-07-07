@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     print("Accuracy:", score)
 
-    plotShapelets(A_hat, d, exemplar)
+    #plotShapelets(A_hat, d, exemplar)
 
 
 
