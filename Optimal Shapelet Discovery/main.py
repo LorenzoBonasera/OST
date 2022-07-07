@@ -11,21 +11,21 @@ if __name__ == '__main__':
     # np.random.seed(2)
 
     ### Load data
-    dataset = 'Wafer'
+    dataset = 'FaceFour'
     X_train, y_train = load_UCR_UEA_dataset(name=dataset, split='Train', return_X_y=True)
 
     # Preprocessing
-    maxSize = 101
+    maxSize = None
     X_train, y_train, y_set, scaler = preprocessTrain(X_train, y_train, maxSize=maxSize)
 
     ### Parameters
-    ex = 9
+    ex = 0
     J = X_train.shape[1]
     K = len(y_set)
     epsilon = 0.0001
     alpha = 1
-    depth = 1
-    H = 6
+    depth = 2
+    H = 20
 
     ### Training phase
     model, branch_nodes, leaf_nodes, n, exemplar = generateModel(X_train, y_train, alpha, depth, H, epsilon, exemplar=ex)
