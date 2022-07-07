@@ -32,10 +32,10 @@ if __name__ == '__main__':
 
     print("Solving MIP model:")
     #model.setParam('Heuristics', 0.5)
-    #model.setParam('PreSparsify', 1)
+    model.setParam('PreSparsify', 1)
     #model.setParam('MIPFocus', 3)
     model.setParam('Presolve', 2)
-    model.setParam('TimeLimit', 600)
+    #model.setParam('TimeLimit', 600)
     model.optimize()
 
     A, A_hat, b, d, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, K)
