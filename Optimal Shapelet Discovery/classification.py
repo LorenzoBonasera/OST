@@ -1,69 +1,34 @@
 # Lorenzo Bonasera 2022
 
 import numpy as np
-import sktime.datatypes._panel._convert as conv
 import matplotlib.pyplot as plt
+
+
+def computeLabel(A, A_hat, b, branches, data, exemplar, node=0):
+    distance = round(np.linalg.norm(np.dot(A_hat[node], exemplar) - np.dot(A[node], data), ord=1), 3)
+    epsilon = 1e-4
+    if 2*node + 1 < branches:
+        if distance + epsilon <= round(b[node], 3):
+            return computeLabel(A, A_hat, b, branches, data, exemplar, node * 2 + 1)
+
+        return computeLabel(A, A_hat, b, branches, data, exemplar, node * 2 + 2)
+
+    if distance + epsilon <= round(b[node], 3):
+        return int(2*node + 1 - branches)
+
+    return int(2*node + 2 - branches)
 
 
 def predictModel(A, A_hat, b, d, labels, X_test, y_test, exemplar):
     t_rows, t_cols = X_test.shape
     tmp = np.zeros([t_rows, 1], dtype=int)
     Y_predict = np.hstack((np.reshape(y_test, (t_rows, 1)), tmp))
-    num_splits = len(d)
+    branches = len(d)
+    print("branches:", sum(d))
 
     # split
-    if num_splits == 7:
-        for i in range(t_rows):
-            if np.linalg.norm(np.dot(A_hat[0], exemplar) - np.dot(A[0], X_test[i, :]), ord=1) < b[0]:
-                if np.linalg.norm(np.dot(A_hat[1], exemplar) - np.dot(A[1], X_test[i, :]), ord=1) < b[1]:
-                    if np.linalg.norm(np.dot(A_hat[3], exemplar) - np.dot(A[3], X_test[i, :]), ord=1) < b[3]:
-                        Y_predict[i, 1] = labels[0]
-
-                    else:
-                        Y_predict[i, 1] = labels[1]
-
-                elif np.linalg.norm(np.dot(A_hat[4], exemplar) - np.dot(A[4], X_test[i, :]), ord=1) < b[4]:
-                    Y_predict[i, 1] = labels[2]
-
-                else:
-                    Y_predict[i, 1] = labels[3]
-
-            elif np.linalg.norm(np.dot(A_hat[2], exemplar) - np.dot(A[2], X_test[i, :]), ord=1) < b[2]:
-                if np.linalg.norm(np.dot(A_hat[5], exemplar) - np.dot(A[5], X_test[i, :]), ord=1) < b[5]:
-                    Y_predict[i, 1] = labels[4]
-
-                else:
-                    Y_predict[i, 1] = labels[5]
-
-            elif np.linalg.norm(np.dot(A_hat[6], exemplar) - np.dot(A[6], X_test[i, :]), ord=1) < b[6]:
-                Y_predict[i, 1] = labels[6]
-
-            else:
-                Y_predict[i, 1] = labels[7]
-
-    elif num_splits == 3:
-        for i in range(t_rows):
-            if np.linalg.norm(np.dot(A_hat[0], exemplar) - np.dot(A[0], X_test[i, :]), ord=1) < b[0]:
-                if np.linalg.norm(np.dot(A_hat[1], exemplar) - np.dot(A[1], X_test[i, :]), ord=1) < b[1]:
-                    Y_predict[i, 1] = labels[0]
-
-                else:
-                    Y_predict[i, 1] = labels[1]
-
-            elif np.linalg.norm(np.dot(A_hat[2], exemplar) - np.dot(A[2], X_test[i, :]), ord=1) < b[2]:
-                Y_predict[i, 1] = labels[2]
-
-            else:
-                Y_predict[i, 1] = labels[3]
-
-    else:
-        for i in range(t_rows):
-            if np.linalg.norm(np.dot(A_hat[0], exemplar) - np.dot(A[0], X_test[i, :]), ord=1) < b[0]:
-                Y_predict[i, 1] = labels[0]
-
-            else:
-                Y_predict[i, 1] = labels[1]
-
+    for i in range(t_rows):
+        Y_predict[i, 1] = labels[computeLabel(A, A_hat, b, branches, X_test[i, :], exemplar)]
 
     acc = 1 - sum(np.minimum(abs(Y_predict[:, 1] - Y_predict[:, 0]), 1)) / t_rows
 
