@@ -1,6 +1,6 @@
-# Lorenzo Bonasera 2022
-import matplotlib.pyplot as plt
+# Lorenzo Bonasera 2023
 
+import matplotlib.pyplot as plt
 from classification import predictModel, plotShapelets
 from training import generateModel, retrieveSolution
 from statistics import median
