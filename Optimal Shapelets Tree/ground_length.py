@@ -1,4 +1,4 @@
-# Lorenzo Bonasera 2022
+# Lorenzo Bonasera 2023
 
 from classification import predictModel, plotShapelets
 from training import generateModel, retrieveSolution
