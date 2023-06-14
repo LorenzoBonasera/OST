@@ -25,7 +25,6 @@ def preprocessTrain(X, y, maxSize=None, maxLength=None):
     scaler = TimeSeriesScalerMinMax()
     X = scaler.fit_transform(X)
     X = X[:, :, 0]
-    X = np.round(X, 3)
 
     # Stratified undersampling
     if maxSize is not None:
