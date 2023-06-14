@@ -1,6 +1,5 @@
 # Lorenzo Bonasera 2023
 
-
 from gurobipy import *
 from math import ceil
 import numpy as np
@@ -31,35 +30,52 @@ def KMedoids(series, k=1):
     return series[medoid]
 
 
-def compute_big_M(time_series, set_of_time_series, H):
-    bigM1 = np.ones(set_of_time_series.shape[0])
-    bigM2 = np.ones(set_of_time_series.shape[0])
-    bigM3 = np.ones(set_of_time_series.shape[0])
-    N = time_series.shape[0]
-    time_series_subsequences = [time_series[j:j+H] for j in range(N - H + 1)]
+def compute_lb_ub(set_of_time_series, H):
+    n = set_of_time_series.shape[0]
+    J = set_of_time_series.shape[1]
+    lb = np.zeros((n, H))
+    ub = np.zeros((n, H))
 
-    for i in range(set_of_time_series.shape[0]):
-        max_distance = 0
-        max_diff = 0
-        min_diff = np.inf
-        set_of_time_series_subsequences = [set_of_time_series[i, j:j+H] for j in range(N - H + 1)]
-        for subsequence1 in time_series_subsequences:
-            for subsequence2 in set_of_time_series_subsequences:
-                diff = np.abs(subsequence1 - subsequence2)
-                dist = np.max(diff)
-                max_distance = max(max_distance, dist)
-                max_diff = max(max_diff, sum(diff))
-                min_diff = min(min_diff, sum(diff))
-        bigM3[i] = max_distance
-        bigM2[i] = min_diff
-        bigM1[i] = max_diff
+    for i in range(n):
+        for h in range(H):
+            lb[i, h] = min(set_of_time_series[i][h:J-H+h])
+            ub[i, h] = max(set_of_time_series[i][h:J - H + h])
+
+    return lb, ub
+
+
+def compute_big_M(lb, ub, lb_ex, ub_ex):
+    n = lb.shape[0]
+    H = lb.shape[1]
+    bigM1 = np.zeros((n, H))
+    bigM2 = np.zeros(n)
+
+    for j in range(n):
+        for h in range(H):
+            bigM1[j, h] = max(ub_ex[0, h] - lb[j, h], ub[j, h] - lb_ex[0, h])
+        bigM2[j] = sum(bigM1[j, :])
+
     return bigM1, bigM2
+
+
+def findAncestors(A_L, A_R, child):
+    if child == 0:
+        return
+
+    father = (child-1)//2
+    if child % 2 != 0:
+        A_L.append(father)
+    else:
+        A_R.append(father)
+
+    findAncestors(A_L, A_R, father)
 
 
 def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=None, K=None, true_exemplar=None):
 
     # Parameters
     Nmin = ceil(0.05 * X_train.shape[0])
+    #Nmin = 10
     J = X_train.shape[1]
     if K == None:
         K = len(set(y_train))
@@ -68,12 +84,7 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
     if K > 2**depth:
         raise ValueError('Depth is too low to handle so many different classes!')
 
-    if depth > 3:
-        raise ValueError('Depth is too high!')
-
-    # Compute big-M
-    M3 = 1
-
+    # compute exemplar
     if true_exemplar is None:
         ex = exemplar
         if ex is None:
@@ -85,14 +96,12 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
         #y_train = np.delete(y_train, ex)
     else:
         X_exemplar = true_exemplar
-
     n = X_train.shape[0]
-    M1, M2 = compute_big_M(X_exemplar, X_train, H)
-    M1 = M1 * 1
-    M2 = M1 - M2
-    M2 = M2 * 1
-    M1 += epsilon
-    M = max(M1)
+
+    # compute big-Ms
+    lb, ub = compute_lb_ub(X_train, H)
+    lb_ex, ub_ex = compute_lb_ub(np.expand_dims(X_exemplar, axis=0), H)
+    M1, M2 = compute_big_M(lb, ub, lb_ex, ub_ex)
 
     # Tree structure
     leaf_nodes = 2**depth
@@ -108,6 +117,7 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
     # Variables
     l = m.addVars(leaf_nodes, vtype=GRB.BINARY, name="l")
     z = m.addVars(n, leaf_nodes, vtype=GRB.BINARY, name="z")
+    w = m.addVars(n, branch_nodes, vtype=GRB.BINARY, name="w")
     N_kt = m.addVars(K, leaf_nodes, vtype=GRB.INTEGER, name="N_kt")
     N_t = m.addVars(leaf_nodes, vtype=GRB.INTEGER, name="N_t")
     c_kt = m.addVars(K, leaf_nodes, vtype=GRB.BINARY, name="c")
@@ -117,7 +127,7 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
     a = m.addVars(J-H, branch_nodes, vtype=GRB.BINARY, name='a')
     a_hat = m.addVars(J-H, branch_nodes, vtype=GRB.BINARY, name='a_hat')
     b = m.addVars(branch_nodes, vtype=GRB.CONTINUOUS, name="b")
-    d = m.addVars(branch_nodes, vtype=GRB.BINARY, name="d")
+    #d = m.addVars(branch_nodes, vtype=GRB.BINARY, name="d")
 
     # Auxiliary variable
     gamma = m.addVars(n, H, branch_nodes, vtype=GRB.BINARY, name='gamma')
@@ -126,28 +136,32 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
     s1 = m.addVars(n, H, branch_nodes, vtype=GRB.CONTINUOUS, name='s1')
     s2 = m.addVars(n, H, branch_nodes, vtype=GRB.CONTINUOUS, name='s2')
 
-
     # Objective function
-    #if leaf_nodes > K:
-    #    m.setObjective(L.sum()/LT + alpha * d.sum(), GRB.MINIMIZE)
-    #else:
-    m.setObjective(L.sum(), GRB.MINIMIZE)
-    m.addConstr(d.sum() == alpha)
+    if leaf_nodes > K:
+        m.setObjective(L.sum()/LT + alpha * l.sum(), GRB.MINIMIZE)
+    else:
+        m.setObjective(L.sum(), GRB.MINIMIZE)
 
     # Constraints
     for i in range(branch_nodes):
-        m.addConstr(b[i] <= M * d[i])
-        #m.addConstr(b[i] >= MM * d[i])
-        if i > 0:
-            m.addConstr(d[i] <= d[(i-1)//2])
+        # only one index
+        m.addConstr(a.sum('*', i) == 1)
+        m.addConstr(a_hat.sum('*', i) == 1)
 
-        # enforce diagonal structure
-        m.addConstr(a.sum('*', i) == d[i])
-        m.addConstr(a_hat.sum('*', i) == d[i])
+        # upper and lower bounds of betas
+        for j in range(n):
+            for h in range(H):
+                m.addConstr(beta[j, h, i] <= ub[j, h])
+                m.addConstr(beta[j, h, i] >= lb[j, h])
+
+        for h in range(H):
+            m.addConstr(beta_2[h, i] <= ub_ex[0, h])
+            m.addConstr(beta_2[h, i] >= lb_ex[0, h])
 
     # enforce one leaf for each class
     for k in range(K):
         m.addConstr(c_kt.sum(k, '*') >= 1)
+
 
     for i in range(leaf_nodes):
         m.addConstr(L[i] >= 0)
@@ -163,59 +177,26 @@ def generateModel(X_train, y_train, alpha, depth, H, epsilon, LT=1, exemplar=Non
         m.addConstr(z.sum(i, '*') == 1)
 
     for i in range(leaf_nodes):
+        A_L = []
+        A_R = []
+        findAncestors(A_L, A_R, i+branch_nodes)
         for j in range(n):
             m.addConstr(z[j, i] <= l[i])
+            m.addConstr(quicksum((1 - w[j, t]) for t in A_L) + quicksum(w[j, t] for t in A_R) >= depth*z[j, i])
 
-    all_branch_nodes = list(reversed(range(branch_nodes)))
-    depth_dict = {}
-    for i in range(depth):
-        depth_dict[i] = sorted(all_branch_nodes[-2 ** i:])
-        for j in range(2 ** i):
-            all_branch_nodes.pop()
+    for k in range(branch_nodes):
+        for j in range(n):
+            for h in range(H):
+                m.addConstr(beta[j, h, k] == quicksum(a[p - h, k] * X_train[j, p] for p in range(h, J - H + h)))
+                m.addConstr(beta_2[h, k] == quicksum(a_hat[p - h, k] * X_exemplar[p] for p in range(h, J - H + h)))
+                m.addConstr(s2[j, h, k] - s1[j, h, k] == beta_2[h, k] - beta[j, h, k])
 
-    all_leaf_nodes = list(range(leaf_nodes))
-    branch_dict = {}
-    for i in range(branch_nodes):
-        for k in range(depth):
-            if i in depth_dict[k]:
-                floor_len = len(depth_dict[k])
-                step = 2 ** depth // floor_len
-                sliced_leaf = [all_leaf_nodes[i:i + step] for i in range(0, 2 ** depth, step)]
-                idx = depth_dict[k].index(i)
-                branch_dict[i] = sliced_leaf[idx]
-            else:
-                continue
+                m.addConstr(s1[j, h, k] <= M1[j, h] * gamma[j, h, k])
+                m.addConstr(s2[j, h, k] <= M1[j, h] * (1 - gamma[j, h, k]))
 
-    for j in range(n):
-        for i in range(leaf_nodes):
-            for k in range(branch_nodes):
-                if i in branch_dict[k]:
-                    length = len(branch_dict[k])
-                    idx = branch_dict[k].index(i)
-                    #sx
-                    if idx + 1 <= length // 2:
-                        for h in range(H):
-                            m.addConstr(beta[j, h, k] == quicksum(a[p - h, k] * X_train[j, p] for p in range(h, J - H + h)))
-                            m.addConstr(beta_2[h, k] == quicksum(a_hat[p - h, k] * X_exemplar[p] for p in range(h, J - H + h)))
-                            m.addConstr(s2[j, h, k] - s1[j, h, k] == beta_2[h, k] - beta[j, h, k])
+            m.addConstr(sum(s1.select(j, '*', k)) + sum(s2.select(j, '*', k)) <= b[k] + M2[j] * w[j, k])
+            m.addConstr(sum(s1.select(j, '*', k)) + sum(s2.select(j, '*', k)) >= b[k] + epsilon - M2[j] * (1 - w[j, k]))
 
-                            m.addConstr(s1[j, h, k] <= M3 * gamma[j, h, k])
-                            m.addConstr(s2[j, h, k] <= M3 * (1 - gamma[j, h, k]))
-
-                        m.addConstr(sum(s1.select(j, '*', k)) + sum(s2.select(j, '*', k)) + epsilon <= b[k] + M1[j] * (1 - z[j, i]))
-
-                    #dx
-                    elif idx + 1 > length // 2:
-                        for h in range(H):
-                            m.addConstr(beta[j, h, k] == quicksum(a[p - h, k] * X_train[j, p] for p in range(h, J - H + h)))
-                            m.addConstr(beta_2[h, k] == quicksum(a_hat[p - h, k] * X_exemplar[p] for p in range(h, J - H + h)))
-                            m.addConstr(s2[j, h, k] - s1[j, h, k] == beta_2[h, k] - beta[j, h, k])
-
-                            m.addConstr(s1[j, h, k] <= M3 * gamma[j, h, k])
-                            m.addConstr(s2[j, h, k] <= M3 * (1 - gamma[j, h, k]))
-                        m.addConstr(sum(s1.select(j, '*', k)) + sum(s2.select(j, '*', k)) >= b[k] - M2[j] * (1 - z[j, i]))
-                else:
-                    continue
 
     return m, branch_nodes, leaf_nodes, n, X_exemplar
 
@@ -224,14 +205,14 @@ def retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, K):
     m = model
 
     for v in m.getVars():
-        if str(v.varName).startswith(('d')):
+        if str(v.varName).startswith(('c')):
             print(v.varName, v.x)
 
     # Retrieve tree structure
     A = []
     A_hat = []
     b = []
-    d = []
+    l = []
     for i in range(branch_nodes):
         temp = np.zeros(J-H)
         temp_hat = np.zeros(J-H)
@@ -245,10 +226,12 @@ def retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, K):
 
         var = m.getVarByName('b' + '[' + str(i) + ']')
         b.append(var.x)
-        var = m.getVarByName('d' + '[' + str(i) + ']')
-        d.append(var.x)
         A.append(temp)
         A_hat.append(temp_hat)
+
+    for i in range(leaf_nodes):
+        var = m.getVarByName('l' + '[' + str(i) + ']')
+        l.append(int(var.x))
 
     # Obtain the labels of leaf nodes
     labels = np.zeros(leaf_nodes, dtype=int) - 1
@@ -265,11 +248,11 @@ def retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, K):
         labels[t_idx[i]] = k_idx[i]
 
     print("Cut-off values b_t:")
-    for bt in b: print(round(bt, 3))
+    for bt in b: print(bt)
 
     print('Elapsed time:', m.Runtime)
 
-    return A, A_hat, b, d, labels
+    return A, A_hat, b, l, labels
 
 
 
