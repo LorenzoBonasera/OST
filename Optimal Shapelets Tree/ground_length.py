@@ -184,8 +184,8 @@ def computeAll(H_true):
                     model.optimize()
 
                     if model.getAttr('SolCount') >= 1:
-                        A, A_hat, b, d, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, 2)
-                        score = predictModel(A, A_hat, b, d, labels, X_val, y_val, exemplar)
+                        A, A_hat, b, l, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, 2)
+                        score = predictModel(A, A_hat, b, l, labels, X_val, y_val, exemplar)
                         scores_cv.append(score)
                     else:
                         scores_cv.append(0)
@@ -203,10 +203,10 @@ def computeAll(H_true):
             model.optimize()
 
             if model.getAttr('SolCount') >= 1:
-                A, A_hat, b, d, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, best_H, n, 2)
-                score = predictModel(A, A_hat, b, d, labels, X_test, y_test, exemplar)
+                A, A_hat, b, l, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, best_H, n, 2)
+                score = predictModel(A, A_hat, b, l, labels, X_test, y_test, exemplar)
                 out_of_sample.append(score)
-                score = predictModel(A, A_hat, b, d, labels, X_train, y_train, exemplar)
+                score = predictModel(A, A_hat, b, l, labels, X_train, y_train, exemplar)
                 in_sample.append(score)
                 cross_validated_H.append(best_H)
                 cross_validated_D.append(sum(d) + 1)
