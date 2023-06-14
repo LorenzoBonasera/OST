@@ -33,10 +33,10 @@ if __name__ == '__main__':
 
     ex = 1
     J = X_train.shape[1]
-    epsilon = 1e-4
+    epsilon = 1e-5
     alpha = 1
     depth = 1
-    H = 30
+    H = 4
     baseline = np.sum(y_train == mode(y_train, keepdims=True))
     print("Baseline acc:", baseline)
 
@@ -44,7 +44,8 @@ if __name__ == '__main__':
     model, branch_nodes, leaf_nodes, n, exemplar = generateModel(X_train, y_train, alpha, depth, H, epsilon, true_exemplar=exemplars[ex], LT=baseline)
     print("Solving MIP model:")
     #model.setParam('Presolve', 2)
-    model.setParam('TimeLimit', 120)
+    model.setParam('TimeLimit', 600)
+    model.setParam('FeasibilityTol', epsilon)
     model.optimize()
 
     A, A_hat, b, d, labels = retrieveSolution(model, branch_nodes, leaf_nodes, J, H, n, K)
