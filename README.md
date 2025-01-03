@@ -8,6 +8,6 @@ Please remember to adjust 'depth' variable depending on the number of classes in
 
 Please remember to adjust 'maxSize' variable depending on the number of points in the dataset!
 
-If facing any numerical issues, please adjust 'epsilon' variable to a greater value (suggested: 1e-6).
+When facing any numerical issues, please adjust 'epsilon' variable to a greater value (suggested: 1e-6).
 
 The main algorithm is contained in training.py "generateModel"
